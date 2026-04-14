@@ -1,104 +1,56 @@
-{
-  "routeId": "RATHNA TRAVELS (MORNING 1)",
-  "vehicles": [
-    {
-      "vehicleId": "A",
-      "departureTime": "05:50",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:00" },
-        { "name": "Kadawatha", "scheduledTime": "07:30" },
-        { "name": "Ambepussa", "scheduledTime": "08:15" },
-        { "name": "Kandy", "scheduledTime": "09:30" }
-      ]
-    },
-    {
-      "vehicleId": "Y",
-      "departureTime": "07:10",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:10" },
-        { "name": "Kadawatha", "scheduledTime": "07:35" },
-        { "name": "Ambepussa", "scheduledTime": "08:10" },
-        { "name": "Kandy", "scheduledTime": "09:45" }
-      ]
-    }
-  ]
-}
-
-{
-  "routeId": "bus-colombo-kandy-01",
-  "vehicles": [
-    {
-      "vehicleId": "X",
-      "departureTime": "07:00",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:00" },
-        { "name": "Kadawatha", "scheduledTime": "07:30" },
-        { "name": "Ambepussa", "scheduledTime": "08:15" },
-        { "name": "Kandy", "scheduledTime": "09:30" }
-      ]
-    },
-    {
-      "vehicleId": "Y",
-      "departureTime": "07:10",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:10" },
-        { "name": "Kadawatha", "scheduledTime": "07:35" },
-        { "name": "Ambepussa", "scheduledTime": "08:10" },
-        { "name": "Kandy", "scheduledTime": "09:45" }
-      ]
-    }
-  ]
-}
-
-
-{
-  "routeId": "bus-colombo-kandy-01",
-  "vehicles": [
-    {
-      "vehicleId": "X",
-      "departureTime": "07:00",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:00" },
-        { "name": "Kadawatha", "scheduledTime": "07:30" },
-        { "name": "Ambepussa", "scheduledTime": "08:15" },
-        { "name": "Kandy", "scheduledTime": "09:30" }
-      ]
-    },
-    {
-      "vehicleId": "Y",
-      "departureTime": "07:10",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:10" },
-        { "name": "Kadawatha", "scheduledTime": "07:35" },
-        { "name": "Ambepussa", "scheduledTime": "08:10" },
-        { "name": "Kandy", "scheduledTime": "09:45" }
-      ]
-    }
-  ]
-}
-
-{
-  "routeId": "bus-colombo-kandy-01",
-  "vehicles": [
-    {
-      "vehicleId": "X",
-      "departureTime": "07:00",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:00" },
-        { "name": "Kadawatha", "scheduledTime": "07:30" },
-        { "name": "Ambepussa", "scheduledTime": "08:15" },
-        { "name": "Kandy", "scheduledTime": "09:30" }
-      ]
-    },
-    {
-      "vehicleId": "Y",
-      "departureTime": "07:10",
-      "stops": [
-        { "name": "Colombo Fort", "scheduledTime": "07:10" },
-        { "name": "Kadawatha", "scheduledTime": "07:35" },
-        { "name": "Ambepussa", "scheduledTime": "08:10" },
-        { "name": "Kandy", "scheduledTime": "09:45" }
-      ]
-    }
-  ]
-}
+[
+  {
+    "routeId": "RATHNA TRAVELS (MORNING 1)",
+    "vehicles": [
+      {
+        "vehicleId": "A",
+        "departureTime": "05:50",
+        "stops": [
+          { "name": "Colombo Fort", "scheduledTime": "07:00" },
+          { "name": "Kadawatha", "scheduledTime": "07:30" },
+          { "name": "Ambepussa", "scheduledTime": "08:15" },
+          { "name": "Kandy", "scheduledTime": "09:30" }
+        ]
+      },
+      {
+        "vehicleId": "Y",
+        "departureTime": "07:10",
+        "stops": [
+          { "name": "Colombo Fort", "scheduledTime": "07:10" },
+          { "name": "Kadawatha", "scheduledTime": "07:35" },
+          { "name": "Ambepussa", "scheduledTime": "08:10" },
+          { "name": "Kandy", "scheduledTime": "09:45" }
+        ]
+      }
+    ]
+  },
+  {
+    "routeId": "bus-colombo-kandy-01",
+    "vehicles": [
+      {
+        "vehicleId": "X",
+        "departureTime": "07:00",
+        "stops": [
+          { "name": "Colombo Fort", "scheduledTime": "07:00" },
+          { "name": "Kadawatha", "scheduledTime": "07:30" },
+          { "name": "Ambepussa", "scheduledTime": "08:15" },
+          { "name": "Kandy", "scheduledTime": "09:30" }
+        ]
+      },
+      {
+        "vehicleId": "Y",
+        "departureTime": "07:10",
+        "stops": [
+          { "name": "Colombo Fort", "scheduledTime": "07:10" },
+          { "name": "Kadawatha", "scheduledTime": "07:35" },
+          { "name": "Ambepussa", "scheduledTime": "08:10" },
+          { "name": "Kandy", "scheduledTime": "09:45" }
+        ]
+      }
+    ]
+  },
+  {
+    "routeId": "bus-colombo-jaffna-2026-04-16",
+    "vehicles": []
+  }
+]

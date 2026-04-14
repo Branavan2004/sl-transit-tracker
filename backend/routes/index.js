@@ -15,7 +15,7 @@ router.get("/:id/buses", (req, res) => {
     return res.status(400).json({ message: "Invalid route id format." });
   }
 
-  const selectedRoute = routes.find((route) => route.id === id);
+  const selectedRoute = routes.find((route) => route.routeId === id);
   if (!selectedRoute) {
     return res.status(404).json({ message: "Route not found." });
   }

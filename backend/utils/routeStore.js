@@ -79,7 +79,8 @@ function validateRoutePayload(routePayload) {
 
   const normalizedVehicles = routePayload.vehicles.map(normalizeVehicle);
   normalizedVehicles.forEach(validateVehicle);
-  validateStopConsistency(normalizedVehicles);
+  // Disabled strict check: buses on the same route can have different stopping patterns.
+  // validateStopConsistency(normalizedVehicles);
 
   return {
     routeId: routePayload.routeId,
