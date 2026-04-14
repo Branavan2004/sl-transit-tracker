@@ -1,7 +1,12 @@
 // Exposes route creation, timetable retrieval, and overtake computation endpoints.
 const express = require("express");
-const { calculateOvertakes } = require("../utils/overtakes");
+const fs = require("fs/promises");
+const path = require("path");
+const { calculateOvertakes } = require("../utils/overtakeCalculator");
 const { readRoute, saveRoute, validateRoutePayload } = require("../utils/routeStore");
+
+const ROUTES_DIR = path.join(__dirname, "../data/routes");
+
 
 const router = express.Router();
 
@@ -40,10 +45,13 @@ router.get("/:routeId/timetable", async (req, res, next) => {
 
 router.get("/:routeId/overtakes", async (req, res, next) => {
   try {
-    const route = validateRoutePayload(await readRoute(req.params.routeId));
+    const routeFile = path.join(ROUTES_DIR, `${req.params.routeId}.json`);
+    const raw = await fs.readFile(routeFile, "utf8");
+    const route = JSON.parse(raw);
     const overtakes = calculateOvertakes(route.vehicles);
     return res.json({
       routeId: route.routeId,
+      count: overtakes.length,
       overtakes
     });
   } catch (error) {
@@ -53,11 +61,9 @@ router.get("/:routeId/overtakes", async (req, res, next) => {
     if (error instanceof SyntaxError) {
       return res.status(500).json({ message: "Malformed route file content." });
     }
-    if (/invalid|must|malformed/i.test(error.message)) {
-      return res.status(400).json({ message: error.message });
-    }
     return next(error);
   }
 });
+
 
 module.exports = router;
