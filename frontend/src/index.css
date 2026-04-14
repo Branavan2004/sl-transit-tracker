@@ -1,0 +1,8 @@
+/* Global Tailwind entrypoint and baseline page styling for the app. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply text-slate-800 antialiased;
+}
