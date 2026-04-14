@@ -1,0 +1,126 @@
+openapi: 3.0.0
+info:
+  title: Sri Lanka Bus Overtake API
+  version: 1.0.0
+  description: API for route search, timetables, and overtake simulator data.
+servers:
+  - url: http://localhost:4000
+paths:
+  /routes:
+    get:
+      summary: Returns all available routes
+      responses:
+        "200":
+          description: Route list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Route"
+  /routes/{id}/buses:
+    get:
+      summary: Returns all buses on a route
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Buses in route
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /buses/{id}:
+    get:
+      summary: Returns a single bus with all stops
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bus details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bus"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  schemas:
+    Route:
+      type: object
+      properties:
+        id:
+          type: string
+        origin:
+          type: string
+        destination:
+          type: string
+        name:
+          type: string
+        stops:
+          type: array
+          items:
+            type: string
+    Stop:
+      type: object
+      properties:
+        name:
+          type: string
+        km:
+          type: number
+        scheduledTime:
+          type: string
+        actualTime:
+          type: string
+    Bus:
+      type: object
+      properties:
+        busId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        route:
+          type: string
+        routeId:
+          type: string
+        stops:
+          type: array
+          items:
+            $ref: "#/components/schemas/Stop"
+  responses:
+    BadRequest:
+      description: Invalid request parameter
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+    NotFound:
+      description: Entity not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
