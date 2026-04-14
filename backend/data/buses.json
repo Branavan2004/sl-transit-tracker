@@ -1,0 +1,47 @@
+[
+  {
+    "busId": "BUS_A",
+    "name": "Alakamanda Express",
+    "type": "Luxury",
+    "route": "Colombo - Jaffna",
+    "routeId": "route_colombo_jaffna",
+    "stops": [
+      { "name": "Colombo Fort", "km": 0, "scheduledTime": "00:00", "actualTime": "00:00" },
+      { "name": "Puttalam", "km": 130, "scheduledTime": "02:00", "actualTime": "02:05" },
+      { "name": "Nochiyadiya", "km": 165, "scheduledTime": "02:45", "actualTime": "02:50" },
+      { "name": "Vavuniya", "km": 250, "scheduledTime": "04:10", "actualTime": "04:15" },
+      { "name": "Kilinochchi", "km": 330, "scheduledTime": "05:30", "actualTime": "05:25" },
+      { "name": "Jaffna", "km": 400, "scheduledTime": "06:30", "actualTime": "06:28" }
+    ]
+  },
+  {
+    "busId": "BUS_B",
+    "name": "Yal Devi Semi",
+    "type": "Semi-Luxury",
+    "route": "Colombo - Jaffna",
+    "routeId": "route_colombo_jaffna",
+    "stops": [
+      { "name": "Colombo Fort", "km": 0, "scheduledTime": "00:20", "actualTime": "00:20" },
+      { "name": "Puttalam", "km": 130, "scheduledTime": "02:10", "actualTime": "02:08" },
+      { "name": "Nochiyadiya", "km": 165, "scheduledTime": "02:55", "actualTime": "02:52" },
+      { "name": "Vavuniya", "km": 250, "scheduledTime": "04:05", "actualTime": "04:00" },
+      { "name": "Kilinochchi", "km": 330, "scheduledTime": "05:15", "actualTime": "05:10" },
+      { "name": "Jaffna", "km": 400, "scheduledTime": "06:15", "actualTime": "06:10" }
+    ]
+  },
+  {
+    "busId": "BUS_C",
+    "name": "Northern Star",
+    "type": "Normal",
+    "route": "Colombo - Jaffna",
+    "routeId": "route_colombo_jaffna",
+    "stops": [
+      { "name": "Colombo Fort", "km": 0, "scheduledTime": "00:40", "actualTime": "00:40" },
+      { "name": "Puttalam", "km": 130, "scheduledTime": "02:50", "actualTime": "03:10" },
+      { "name": "Nochiyadiya", "km": 165, "scheduledTime": "03:40", "actualTime": "04:05" },
+      { "name": "Vavuniya", "km": 250, "scheduledTime": "05:10", "actualTime": "05:40" },
+      { "name": "Kilinochchi", "km": 330, "scheduledTime": "06:30", "actualTime": "07:05" },
+      { "name": "Jaffna", "km": 400, "scheduledTime": "07:25", "actualTime": "08:10" }
+    ]
+  }
+]

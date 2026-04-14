@@ -1,0 +1,19 @@
+[
+  {
+    "id": "route_colombo_jaffna",
+    "origin": "Colombo",
+    "destination": "Jaffna",
+    "name": "Colombo - Jaffna",
+    "stops": [
+      "Colombo",
+      "Negombo",
+      "Chilaw",
+      "Puttalam",
+      "Nochiyadiya",
+      "Vavuniya",
+      "Kilinochchi",
+      "Elephant Pass",
+      "Jaffna"
+    ]
+  }
+]
