@@ -9,11 +9,6 @@ Most Sri Lankan bus timetable information is fragmented. This app demonstrates h
 - delay-aware stop analysis,
 - and animated overtake insights for operations storytelling.
 
-## Screenshot Placeholder
-
-- Home page search UI: `[Add screenshot here]`
-- Results + timetable: `[Add screenshot here]`
-- Overtake simulator: `[Add screenshot here]`
 
 ## Tech Stack
 
