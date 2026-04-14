@@ -21,34 +21,60 @@ function parseTime(time) {
   return hour * 60 + minute;
 }
 
+function interpolate(stops, mode, targetKm) {
+  const nextIdx = stops.findIndex((s) => s.km >= targetKm);
+  if (nextIdx === -1) return null;
+  if (nextIdx === 0) return parseTime(stops[0][mode]);
+  
+  const s1 = stops[nextIdx - 1];
+  const s2 = stops[nextIdx];
+  const t1 = parseTime(s1[mode]);
+  const t2 = parseTime(s2[mode]);
+  
+  const span = s2.km - s1.km;
+  if (span === 0) return t1;
+  const ratio = (targetKm - s1.km) / span;
+  return t1 + ratio * (t2 - t1);
+}
+
 function detectOvertakes(buses, mode) {
   const events = [];
+  // Resolution: check every 2km for speed and accuracy balance
+  const resolution = 2;
+  
   for (let i = 0; i < buses.length; i += 1) {
     for (let j = i + 1; j < buses.length; j += 1) {
-      const a = buses[i].stops;
-      const b = buses[j].stops;
-      for (let k = 0; k < Math.min(a.length, b.length) - 1; k += 1) {
-        const a1 = parseTime(a[k][mode]);
-        const a2 = parseTime(a[k + 1][mode]);
-        const b1 = parseTime(b[k][mode]);
-        const b2 = parseTime(b[k + 1][mode]);
-        const d1 = a1 - b1;
-        const d2 = a2 - b2;
-        if (d1 === 0 || d2 === 0 || d1 * d2 > 0) {
-          continue;
+      const b1 = buses[i];
+      const b2 = buses[j];
+      
+      const minKm = Math.max(b1.stops[0].km, b2.stops[0].km);
+      const maxKm = Math.min(b1.stops[b1.stops.length - 1].km, b2.stops[b2.stops.length - 1].km);
+      
+      let prevD = null;
+      for (let km = minKm; km <= maxKm; km += resolution) {
+        const t1 = interpolate(b1.stops, mode, km);
+        const t2 = interpolate(b2.stops, mode, km);
+        
+        if (t1 === null || t2 === null) continue;
+        const d = t1 - t2;
+        
+        if (prevD !== null && d * prevD < 0) {
+          // Intersection occurred between last point and this one
+          const ratio = Math.abs(prevD) / (Math.abs(prevD) + Math.abs(d));
+          const intersectTime = (t1 - d) + ratio * ((t1) - (t1 - d)); // Approximate
+          const intersectKm = km - resolution + ratio * resolution;
+          
+          const leadBus = prevD > 0 ? b2 : b1;
+          const passBus = prevD > 0 ? b1 : b2;
+          
+          events.push({
+            id: `${b1.busId}-${b2.busId}-${km}`,
+            x: Math.round(t1 - d + ratio * ((t1) - (t1 - d))), // Corrected X
+            y: intersectKm,
+            label: `${passBus.name} overtook ${leadBus.name} at ~${Math.round(intersectKm)}km`
+          });
         }
-        const ratio = Math.abs(d1) / (Math.abs(d1) + Math.abs(d2));
-        const x = a1 + ratio * (a2 - a1);
-        const y = a[k].km + ratio * (a[k + 1].km - a[k].km);
-        const stopLabel = `${a[k].name} (${Math.round(y)}km)`;
-        const leadBus = d1 > 0 ? buses[j] : buses[i];
-        const passBus = d1 > 0 ? buses[i] : buses[j];
-        events.push({
-          id: `${buses[i].busId}-${buses[j].busId}-${k}`,
-          x,
-          y,
-          label: `${passBus.name} overtook ${leadBus.name} at ${stopLabel}`
-        });
+        prevD = d;
       }
     }
   }
