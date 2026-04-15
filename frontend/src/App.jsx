@@ -2,17 +2,15 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Results from "./pages/Results";
-import OvertakeSimulator from "./pages/OvertakeSimulator";
-
+import SimulatorLayout from "./pages/SimulatorLayout";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/results" element={<Results />} />
-      <Route path="/simulate" element={<OvertakeSimulator />} />
+      <Route path="/simulate" element={<SimulatorLayout />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-
     </Routes>
   );
 }
