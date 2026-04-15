@@ -1,0 +1,13 @@
+{
+  "date": "2026-03-12",
+  "routeId": "bus-colombo-jaffna-2026-04-16",
+  "vehicleId": "RATHNA_TRAVELS_MORNING_1",
+  "stops": [
+    { "name": "Colombo Fort", "scheduledTime": "06:00", "actualTime": "06:07" },
+    { "name": "Vavuniya", "scheduledTime": "11:30", "actualTime": "12:03" }
+  ],
+  "overtakesObserved": [
+    { "overtookVehicle": "PUTTALAM_EXPRESS_1", "nearStop": "Anuradhapura", "atTime": "09:45" }
+  ],
+  "notes": "Heavy traffic after Puttalam"
+}

@@ -1,228 +1,380 @@
-// SimulatorLayout.jsx — top-level shell with tab switcher, shared controls & stats bar
-import { useState } from "react";
-import { SimulatorProvider, minutesToHHmm, labelFor, useSimulator } from "../context/SimulatorContext";
-import OvertakeSimulator from "./OvertakeSimulator";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import AnimatedNumber from "../components/AnimatedNumber";
+import CommandCenterNav from "../components/CommandCenterNav";
+import { SimulatorProvider, minutesToHHmm, useSimulator } from "../context/SimulatorContext";
+import { countVisibleBusesOnRoad } from "../utils/simulatorMap";
 import LiveMap from "./LiveMap";
+import OvertakeSimulator from "./OvertakeSimulator";
 
-// ─── Stats Bar ────────────────────────────────────────────────────────────────
-function StatsBar() {
-  const { stats } = useSimulator();
-  if (!stats) return null;
+const ROUTE_LABEL = "Colombo → Jaffna";
 
+function PlayIcon() {
   return (
-    <div className="grid grid-cols-3 gap-3 rounded-xl bg-slate-900 p-3 text-center text-xs">
-      <div className="rounded-lg bg-slate-800 px-3 py-2">
-        <p className="text-slate-500 uppercase tracking-wide">⚡ Fastest Trip</p>
-        <p className="mt-1 font-semibold text-emerald-400 truncate">{labelFor(stats.fastestId)}</p>
-        <p className="text-slate-500">{Math.floor(stats.fastestDurMin / 60)}h {stats.fastestDurMin % 60}m</p>
-      </div>
-      <div className="rounded-lg bg-slate-800 px-3 py-2">
-        <p className="text-slate-500 uppercase tracking-wide">🏎 Most Overtakes</p>
-        <p className="mt-1 font-semibold text-indigo-400 truncate">{labelFor(stats.mostMadeId)}</p>
-        <p className="text-slate-500">{stats.mostMadeCount} overtakes made</p>
-      </div>
-      <div className="rounded-lg bg-slate-800 px-3 py-2">
-        <p className="text-slate-500 uppercase tracking-wide">🐢 Most Overtaken</p>
-        <p className="mt-1 font-semibold text-red-400 truncate">{labelFor(stats.mostOvertakenId)}</p>
-        <p className="text-slate-500">{stats.mostOvertakenCount} times passed</p>
-      </div>
-    </div>
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current">
+      <path d="M8 6.5v11l9-5.5-9-5.5Z" />
+    </svg>
   );
 }
 
-// ─── Shared Controls Bar ──────────────────────────────────────────────────────
-function ControlsBar() {
-  const {
-    isPlaying, setIsPlaying, playSpeed, setPlaySpeed,
-    timelineMinutes, setTimelineMinutes, globalMin, globalMax, resetPlayback,
-    xWindow, setXWindow,
-    vehicles,
-  } = useSimulator();
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current">
+      <path d="M7 6.5h3.5v11H7v-11Zm6.5 0H17v11h-3.5v-11Z" />
+    </svg>
+  );
+}
 
-  const presets = [
-    { label: "Morning", min: 360, max: 960 },
-    { label: "Night", min: 1080, max: 1920 },
-    { label: "All", min: null, max: null },
-  ];
+function ResetIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+      <path d="M20 5v5h-5" />
+    </svg>
+  );
+}
 
-  const effectiveWindow = xWindow || { min: globalMin, max: globalMax };
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function parseInputMinutes(hhmm) {
+  if (!hhmm || !/^\d{2}:\d{2}$/.test(hhmm)) return null;
+  const [hours, minutes] = hhmm.split(":").map(Number);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
+}
+
+function resolveWindowMinutes(parsed, side, currentWindow) {
+  const candidates = [parsed, parsed + 1440];
+
+  if (side === "from") {
+    const valid = candidates.filter((candidate) => candidate <= currentWindow.to);
+    const pool = valid.length > 0 ? valid : candidates;
+    return pool.reduce((best, candidate) => (
+      Math.abs(candidate - currentWindow.from) < Math.abs(best - currentWindow.from)
+        ? candidate
+        : best
+    ));
+  }
+
+  const valid = candidates.filter((candidate) => candidate >= currentWindow.from);
+  const pool = valid.length > 0 ? valid : candidates;
+  return pool.reduce((best, candidate) => (
+    Math.abs(candidate - currentWindow.to) < Math.abs(best - currentWindow.to)
+      ? candidate
+      : best
+  ));
+}
+
+function formatDuration(minutes) {
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
+
+function StatStrip() {
+  const { stats, vehicles } = useSimulator();
+
+  if (!stats) return null;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-slate-900 p-3">
-      {/* Row 1: Play controls + time display */}
-      <div className="flex flex-wrap items-center gap-3">
+    <section className="fade-up pt-6">
+      <div className="grid overflow-hidden rounded-[18px] bg-[var(--c-border)] grid-cols-2 gap-px min-[900px]:grid-cols-4">
+        <div className="bg-[var(--c-navy2)] px-6 py-4 transition-all duration-150 ease-out hover:bg-[var(--c-navy3)]">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--c-text3)]">Fastest trip</p>
+          <p className="mt-2 truncate text-[16px] font-semibold text-[var(--c-red2)]">{stats.fastestId.replace(/_/g, " ").slice(0, 20)}</p>
+          <p className="mt-1 font-mono text-[13px] text-[var(--c-text2)]">
+            <AnimatedNumber value={stats.fastestDurMin} formatter={(value) => formatDuration(value)} />
+          </p>
+        </div>
+
+        <div className="bg-[var(--c-navy2)] px-6 py-4 transition-all duration-150 ease-out hover:bg-[var(--c-navy3)]">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--c-text3)]">Most overtakes</p>
+          <p className="mt-2 truncate text-[16px] font-semibold text-[var(--c-teal)]">{stats.mostMadeId.replace(/_/g, " ").slice(0, 20)}</p>
+          <p className="mt-1 font-mono text-[13px] text-[var(--c-text2)]">
+            <AnimatedNumber value={stats.mostMadeCount} formatter={(value) => `${value} overtakes made`} />
+          </p>
+        </div>
+
+        <div className="bg-[var(--c-navy2)] px-6 py-4 transition-all duration-150 ease-out hover:bg-[var(--c-navy3)]">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--c-text3)]">Most overtaken</p>
+          <p className="mt-2 truncate text-[16px] font-semibold text-[var(--c-amber)]">{stats.mostOvertakenId.replace(/_/g, " ").slice(0, 20)}</p>
+          <p className="mt-1 font-mono text-[13px] text-[var(--c-text2)]">
+            <AnimatedNumber value={stats.mostOvertakenCount} formatter={(value) => `passed ${value} times`} />
+          </p>
+        </div>
+
+        <div className="bg-[var(--c-navy2)] px-6 py-4 transition-all duration-150 ease-out hover:bg-[var(--c-navy3)]">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--c-text3)]">Overtake events</p>
+          <p className="mt-1 font-mono text-[28px] font-semibold text-[var(--c-text)]">
+            <AnimatedNumber value={stats.totalOvertakes} />
+          </p>
+          <p className="mt-1 font-mono text-[13px] text-[var(--c-text2)]">
+            across <AnimatedNumber value={vehicles.length} /> vehicles
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ControlsBar() {
+  const {
+    isPlaying,
+    setIsPlaying,
+    playSpeed,
+    setPlaySpeed,
+    timeWindow,
+    setTimeWindow,
+    globalMin,
+    globalMax,
+    timelineMinutes,
+    resetPlayback,
+  } = useSimulator();
+
+  const handlePresetWindow = useCallback((from, to) => {
+    setTimeWindow({ from, to });
+  }, [setTimeWindow]);
+
+  const handleManualWindow = useCallback((side, hhmm) => {
+    const parsed = parseInputMinutes(hhmm);
+    if (parsed === null) return;
+    setTimeWindow((prev) => ({
+      ...prev,
+      [side]: clamp(resolveWindowMinutes(parsed, side, prev), globalMin, globalMax),
+    }));
+  }, [globalMax, globalMin, setTimeWindow]);
+
+  const presets = [
+    { label: "Morning", from: 360, to: 960 },
+    { label: "Night", from: 1080, to: 1920 },
+    { label: "All", from: globalMin, to: globalMax },
+  ];
+
+  return (
+    <section className="fade-up fade-delay-1 mt-4 overflow-hidden rounded-t-[18px] border border-b-0 border-[var(--c-border)] bg-[var(--c-navy2)]">
+      <div className="flex min-h-[52px] flex-wrap items-center gap-3 border-b border-[var(--c-border)] px-4 py-3 min-[900px]:gap-4 min-[900px]:px-6">
         <button
           id="play-pause-btn"
-          onClick={() => setIsPlaying((p) => !p)}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors"
+          onClick={() => setIsPlaying((current) => !current)}
+          className="flex items-center gap-2 rounded-lg bg-[var(--c-red)] px-5 py-2 text-[13px] font-semibold text-white transition-all duration-150 ease-out hover:bg-[var(--c-red2)] active:scale-[0.97]"
         >
-          {isPlaying ? "⏸ Pause" : "▶ Play"}
+          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          {isPlaying ? "Pause" : "Play"}
         </button>
+
         <button
           id="reset-btn"
           onClick={resetPlayback}
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-2 rounded-lg border border-[var(--c-border2)] px-3.5 py-2 text-[13px] text-[var(--c-text2)] transition-all duration-150 ease-out hover:bg-[var(--c-navy4)]"
         >
-          ↺ Reset
+          <ResetIcon />
+          Reset
         </button>
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <span>Speed</span>
-          <input
-            id="speed-slider"
-            type="range" min="1" max="16" step="1"
-            value={playSpeed}
-            onChange={(e) => setPlaySpeed(Number(e.target.value))}
-            className="w-24 accent-indigo-500"
-          />
-          <span className="w-6 text-slate-200">{playSpeed}×</span>
-        </div>
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <span className="text-slate-400">Time:</span>
-          <span className="rounded bg-slate-800 px-2 py-0.5 font-mono text-lg text-indigo-300">
-            {minutesToHHmm(timelineMinutes)}
-          </span>
-        </div>
-      </div>
 
-      {/* Row 2: Timeline scrubber */}
-      <input
-        id="timeline-slider"
-        type="range"
-        min={globalMin}
-        max={globalMax}
-        step="1"
-        value={timelineMinutes}
-        onChange={(e) => setTimelineMinutes(Number(e.target.value))}
-        className="w-full accent-indigo-500"
-      />
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-[var(--c-text3)]">Speed</span>
+          <div className="flex rounded-lg border border-[var(--c-border2)] bg-transparent p-1">
+            {[1, 2, 4].map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setPlaySpeed(speed)}
+                className={`rounded-md px-3 py-1 text-[12px] font-medium transition-all duration-150 ease-out ${
+                  playSpeed === speed
+                    ? "bg-[var(--c-navy4)] text-[var(--c-text)]"
+                    : "text-[var(--c-text2)] hover:bg-[var(--c-navy4)]"
+                }`}
+              >
+                {speed}×
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Row 3: Time window zoom */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-slate-800 pt-2">
-        <span className="text-xs text-slate-500 uppercase tracking-wide">Chart window</span>
-        <div className="flex gap-1.5">
-          {presets.map((p) => {
-            const isActive = p.min === null
-              ? xWindow === null
-              : (xWindow?.min === p.min && xWindow?.max === p.max);
+        <div className="flex items-center gap-2">
+          {presets.map((preset) => {
+            const isActive = timeWindow.from === preset.from && timeWindow.to === preset.to;
             return (
               <button
-                key={p.label}
-                onClick={() => setXWindow(p.min === null ? null : { min: p.min, max: p.max })}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors
-                  ${isActive ? "bg-indigo-600 text-white" : "border border-slate-700 text-slate-400 hover:bg-slate-800"}`}
+                key={preset.label}
+                onClick={() => handlePresetWindow(preset.from, preset.to)}
+                className={`rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ease-out ${
+                  isActive
+                    ? "border-[color:rgba(15,207,170,0.25)] bg-[color:rgba(15,207,170,0.1)] text-[var(--c-teal)]"
+                    : "border-[var(--c-border2)] text-[var(--c-text2)] hover:bg-[var(--c-navy4)]"
+                }`}
               >
-                {p.label}
+                {preset.label}
               </button>
             );
           })}
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span>From</span>
-          <input
-            type="range" min={globalMin} max={globalMax} step="30"
-            value={effectiveWindow.min}
-            onChange={(e) => setXWindow({ min: Number(e.target.value), max: effectiveWindow.max })}
-            className="w-20 accent-indigo-500"
-          />
-          <span className="font-mono text-slate-300">{minutesToHHmm(effectiveWindow.min)}</span>
-          <span>To</span>
-          <input
-            type="range" min={globalMin} max={globalMax} step="30"
-            value={effectiveWindow.max}
-            onChange={(e) => setXWindow({ min: effectiveWindow.min, max: Number(e.target.value) })}
-            className="w-20 accent-indigo-500"
-          />
-          <span className="font-mono text-slate-300">{minutesToHHmm(effectiveWindow.max)}</span>
+
+        <div className="flex items-end gap-2">
+          <label className="flex flex-col gap-1 text-[11px] text-[var(--c-text3)]">
+            <span>From</span>
+            <input
+              type="time"
+              value={minutesToHHmm(timeWindow.from)}
+              onChange={(event) => handleManualWindow("from", event.target.value)}
+              className="w-[70px] rounded-md border border-[var(--c-border2)] bg-[var(--c-navy3)] px-2 py-1.5 text-center font-mono text-[13px] text-[var(--c-teal)] outline-none transition-all duration-150 ease-out focus:border-[var(--c-teal)]"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-[11px] text-[var(--c-text3)]">
+            <span>To</span>
+            <input
+              type="time"
+              value={minutesToHHmm(timeWindow.to)}
+              onChange={(event) => handleManualWindow("to", event.target.value)}
+              className="w-[70px] rounded-md border border-[var(--c-border2)] bg-[var(--c-navy3)] px-2 py-1.5 text-center font-mono text-[13px] text-[var(--c-teal)] outline-none transition-all duration-150 ease-out focus:border-[var(--c-teal)]"
+            />
+          </label>
+        </div>
+
+        <div className="ml-auto flex flex-col items-end">
+          <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--c-text3)]">Time</span>
+          <span className="font-mono text-[22px] font-medium text-[var(--c-teal)]">{minutesToHHmm(timelineMinutes)}</span>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-// ─── Shell ────────────────────────────────────────────────────────────────────
-function Shell() {
-  const [activeTab, setActiveTab] = useState("chart");
-  const { loading, error, vehicles, overtakes } = useSimulator();
+function TimelineScrubber() {
+  const { timelineMinutes, setTimelineMinutes, globalMin, globalMax } = useSimulator();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
-          <p className="text-slate-400">Loading timetable & overtake data…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="rounded-xl bg-red-950 border border-red-800 p-8 text-center max-w-md">
-          <p className="text-lg font-semibold text-red-300">Failed to load data</p>
-          <p className="mt-2 text-sm text-red-400">{error}</p>
-          <p className="mt-4 text-xs text-slate-500">Make sure the backend server is running on port 4000.</p>
-        </div>
-      </div>
-    );
-  }
+  const progress = ((timelineMinutes - globalMin) / Math.max(1, globalMax - globalMin)) * 100;
+  const ticks = useMemo(() => {
+    const firstHour = Math.ceil(globalMin / 60) * 60;
+    const nextTicks = [];
+    for (let minute = firstHour; minute <= globalMax; minute += 60) {
+      nextTicks.push(minute);
+    }
+    return nextTicks;
+  }, [globalMax, globalMin]);
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4 font-sans text-slate-100">
-      {/* Header */}
-      <header className="mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">🚌 SL Transit Simulator</h1>
-            <p className="mt-0.5 text-sm text-slate-400">
-              Colombo → Jaffna · {vehicles.length} vehicles · {overtakes.length} overtakes detected
-            </p>
-          </div>
+    <section className="fade-up fade-delay-2 border-x border-b border-[var(--c-border)] bg-[var(--c-navy2)] px-4 pb-4 pt-3 min-[900px]:px-6">
+      <div className="relative pb-6">
+        <input
+          id="timeline-slider"
+          type="range"
+          min={globalMin}
+          max={globalMax}
+          step="1"
+          value={timelineMinutes}
+          onChange={(event) => setTimelineMinutes(Number(event.target.value))}
+          className="timeline-range"
+          style={{
+            background: `linear-gradient(to right, var(--c-teal) 0%, var(--c-teal) ${progress}%, var(--c-border2) ${progress}%, var(--c-border2) 100%)`,
+          }}
+        />
+
+        <div className="pointer-events-none absolute left-0 right-0 top-4 h-8">
+          {ticks.map((tick) => {
+            const left = ((tick - globalMin) / Math.max(1, globalMax - globalMin)) * 100;
+            return (
+              <div key={tick} className="absolute -translate-x-1/2" style={{ left: `${left}%` }}>
+                <div className="mx-auto h-[5px] w-px bg-[var(--c-border2)]" />
+                {tick % 120 === 0 ? (
+                  <p className="mt-1 font-mono text-[10px] text-[var(--c-text3)]">{minutesToHHmm(tick)}</p>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
-      </header>
+      </div>
+    </section>
+  );
+}
 
-      {/* Tab switcher */}
-      <div className="mb-3 flex gap-1 rounded-xl bg-slate-900 p-1 w-fit">
-        {[
-          { id: "chart", label: "📈 Time-Space Chart" },
-          { id: "map", label: "🗺 Live Map" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            id={`tab-${tab.id}`}
-            onClick={() => setActiveTab(tab.id)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors
-              ${activeTab === tab.id
-                ? "bg-indigo-600 text-white shadow"
-                : "text-slate-400 hover:text-slate-200"}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+function LegendBar() {
+  const { vehicles, selectedIds, timelineMinutes } = useSimulator();
 
-      {/* Stats bar */}
-      <div className="mb-3">
-        <StatsBar />
-      </div>
+  const busesOnRoadCount = useMemo(
+    () => countVisibleBusesOnRoad(vehicles, selectedIds, timelineMinutes),
+    [selectedIds, timelineMinutes, vehicles]
+  );
 
-      {/* Shared controls */}
-      <div className="mb-3">
-        <ControlsBar />
+  return (
+    <section className="border-x border-b border-[var(--c-border)] bg-[var(--c-navy2)] px-4 py-3 min-[900px]:px-6">
+      <div className="flex flex-wrap items-center gap-4 text-[12px] text-[var(--c-text2)]">
+        <span className="flex items-center gap-2">
+          <span className="inline-block w-7 border-t-2 border-dashed border-[var(--c-red)]" />
+          A9/A3 Highway
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-[color:rgba(240,165,0,0.9)]" />
+          Overtake flash
+        </span>
+        <div className="ml-auto flex items-center gap-2 font-mono text-[12px]">
+          <span className="text-[var(--c-text2)]">{busesOnRoadCount} buses on road</span>
+          <span className="text-[var(--c-text3)]">•</span>
+          <span className="text-[var(--c-teal)]">{minutesToHHmm(timelineMinutes)}</span>
+        </div>
       </div>
+    </section>
+  );
+}
 
-      {/* Tab content */}
-      <div className={activeTab === "chart" ? "block" : "hidden"}>
-        <OvertakeSimulator />
-      </div>
-      <div className={activeTab === "map" ? "block" : "hidden"}>
-        <LiveMap />
-      </div>
+function Shell() {
+  const [searchParams] = useSearchParams();
+  const [hasOpenedMap, setHasOpenedMap] = useState(searchParams.get("tab") === "map");
+  const { loading, error } = useSimulator();
+
+  const activeView = searchParams.get("tab") === "map" ? "map" : "chart";
+  const activeTab = activeView === "map" ? "map" : "simulator";
+
+  useEffect(() => {
+    if (activeView === "map") {
+      setHasOpenedMap(true);
+    }
+  }, [activeView]);
+
+  return (
+    <div className="min-h-screen bg-[var(--c-navy)]">
+      <CommandCenterNav activeTab={activeTab} routeLabel={ROUTE_LABEL} />
+
+      <section className="mx-auto max-w-[1400px] px-4 pb-6">
+        {loading ? (
+          <div className="flex min-h-[calc(100vh-56px)] items-center justify-center">
+            <div className="fade-up rounded-[20px] border border-[var(--c-border)] bg-[var(--c-navy2)] px-10 py-12 text-center">
+              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[var(--c-teal)] border-t-transparent" />
+              <p className="mt-5 text-[14px] text-[var(--c-text2)]">Loading timetable and simulation layers…</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex min-h-[calc(100vh-56px)] items-center justify-center">
+            <div className="fade-up max-w-md rounded-[20px] border border-[color:rgba(226,75,74,0.28)] bg-[color:rgba(176,29,73,0.12)] px-8 py-10 text-center">
+              <p className="text-[18px] font-semibold text-[#f0b3b3]">Failed to load simulator</p>
+              <p className="mt-3 text-[14px] text-[#e5b2b2]">{error}</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <StatStrip />
+            <ControlsBar />
+            <TimelineScrubber />
+            <LegendBar />
+
+            <div className="fade-up fade-delay-3 transition-opacity duration-200 min-[900px]:h-[calc(100vh-220px)]">
+              {activeView === "map" ? (
+                <div className="h-[calc(100vh-220px)] min-h-[520px]">
+                  {hasOpenedMap ? <LiveMap isActive /> : null}
+                </div>
+              ) : (
+                <div className="min-h-[720px] min-[900px]:h-full">
+                  <OvertakeSimulator />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </section>
     </div>
   );
 }
 
-// ─── Export ───────────────────────────────────────────────────────────────────
 export default function SimulatorLayout() {
   return (
     <SimulatorProvider>

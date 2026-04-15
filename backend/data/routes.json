@@ -52,5 +52,9 @@
   {
     "routeId": "bus-colombo-jaffna-2026-04-16",
     "vehicles": []
+  },
+  {
+    "routeId": "route_colombo_jaffna",
+    "vehicles": []
   }
 ]

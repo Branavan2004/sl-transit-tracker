@@ -1,215 +1,215 @@
-// LiveMap.jsx — Leaflet map showing bus positions synced to the timeline
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import { useSimulator, toAbsoluteMinutes, minutesToHHmm, labelFor } from "../context/SimulatorContext";
+import L from "leaflet";
+import { Circle, CircleMarker, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { labelFor, minutesToHHmm, useSimulator } from "../context/SimulatorContext";
+import { HIGHWAY_STOPS, ROUTE_LATLNGS, getBusPosition, kmToLatLng } from "../utils/simulatorMap";
 
-// ─── Route corridor (A9/A3 highway) ──────────────────────────────────────────
-const MAIN_STOPS = [
-  { name: "Colombo Fort",    km: 0,   lat: 6.9344, lng: 79.8428 },
-  { name: "Negombo",         km: 35,  lat: 7.2084, lng: 79.8358 },
-  { name: "Puttalam",        km: 130, lat: 8.0362, lng: 79.8283 },
-  { name: "Anuradhapura",    km: 205, lat: 8.3114, lng: 80.4037 },
-  { name: "Medawachchiya",   km: 235, lat: 8.5107, lng: 80.4936 },
-  { name: "Vavuniya",        km: 265, lat: 8.7514, lng: 80.4971 },
-  { name: "Kilinochchi",     km: 335, lat: 9.3803, lng: 80.3770 },
-  { name: "Jaffna",          km: 400, lat: 9.6615, lng: 80.0255 },
-];
+const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const TILE_ATTRIBUTION = "© OpenStreetMap contributors © CartoDB";
 
-const ROUTE_LATLNGS = MAIN_STOPS.map((s) => [s.lat, s.lng]);
-
-// ─── Interpolate lat/lng at a given km along the corridor ────────────────────
-function kmToLatLng(km) {
-  if (km <= MAIN_STOPS[0].km) return [MAIN_STOPS[0].lat, MAIN_STOPS[0].lng];
-  if (km >= MAIN_STOPS[MAIN_STOPS.length - 1].km)
-    return [MAIN_STOPS[MAIN_STOPS.length - 1].lat, MAIN_STOPS[MAIN_STOPS.length - 1].lng];
-
-  for (let i = 0; i < MAIN_STOPS.length - 1; i++) {
-    const s1 = MAIN_STOPS[i], s2 = MAIN_STOPS[i + 1];
-    if (km >= s1.km && km <= s2.km) {
-      const ratio = (km - s1.km) / (s2.km - s1.km);
-      return [s1.lat + ratio * (s2.lat - s1.lat), s1.lng + ratio * (s2.lng - s1.lng)];
-    }
-  }
-  return [MAIN_STOPS[0].lat, MAIN_STOPS[0].lng];
+function createBusIcon(color) {
+  return L.divIcon({
+    className: "bus-marker-icon",
+    html: `<span class="bus-marker-icon__dot" style="--marker-color:${color}"></span>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
 }
 
-// ─── Compute a vehicle's current km at a given absolute time ─────────────────
-function vehicleKmAt(vehicle, absoluteTimeMinutes) {
-  const abs = toAbsoluteMinutes(vehicle.stops, vehicle.departureTime);
-  // Before departure
-  if (absoluteTimeMinutes < abs[0]) return null;
-  // After arrival
-  if (absoluteTimeMinutes > abs[abs.length - 1]) return null;
+function MapInvalidator({ isActive }) {
+  const map = useMap();
 
-  for (let i = 0; i < abs.length - 1; i++) {
-    if (abs[i] <= absoluteTimeMinutes && absoluteTimeMinutes <= abs[i + 1]) {
-      const span = abs[i + 1] - abs[i];
-      if (span === 0) return vehicle.stops[i].km;
-      const ratio = (absoluteTimeMinutes - abs[i]) / span;
-      return vehicle.stops[i].km + ratio * (vehicle.stops[i + 1].km - vehicle.stops[i].km);
-    }
-  }
+  useEffect(() => {
+    if (!isActive) return undefined;
+    const timer = setTimeout(() => map.invalidateSize(), 150);
+    return () => clearTimeout(timer);
+  }, [isActive, map]);
+
   return null;
 }
 
-// ─── "ETA to Jaffna" from current position ───────────────────────────────────
-function etaToJaffna(vehicle, absoluteTimeMinutes) {
-  const abs = toAbsoluteMinutes(vehicle.stops, vehicle.departureTime);
-  const lastStops = vehicle.stops[vehicle.stops.length - 1];
-  const lastTime = abs[abs.length - 1];
-  if (absoluteTimeMinutes >= lastTime) return "Arrived";
-  const remaining = lastTime - absoluteTimeMinutes;
-  const h = Math.floor(remaining / 60), m = Math.round(remaining % 60);
-  return `${h}h ${m}m`;
-}
-
-// ─── Flash: overtake burst on map ─────────────────────────────────────────────
-function OvertakeFlash({ overtakes, timelineMinutes }) {
-  const [flashes, setFlashes] = useState([]);
-  const prevTime = useRef(timelineMinutes);
+function AnimatedFlashCircle({ event }) {
+  const [opacity, setOpacity] = useState(0.5);
 
   useEffect(() => {
-    // Find newly crossed overtakes
-    const newFlashes = overtakes.filter(
-      (e) => e.atTimeMinutes > prevTime.current && e.atTimeMinutes <= timelineMinutes
-    );
-    if (newFlashes.length > 0) {
-      const id = Date.now();
-      setFlashes((f) => [...f, ...newFlashes.map((e) => ({ ...e, id: id + Math.random() }))]);
-      setTimeout(() => setFlashes((f) => f.filter((x) => x.id !== id)), 1500);
+    let frameId = null;
+    const startTime = performance.now();
+    const duration = 1500;
+
+    const tick = (now) => {
+      const progress = Math.min(1, (now - startTime) / duration);
+      setOpacity(0.5 * (1 - progress));
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+
+    frameId = requestAnimationFrame(tick);
+
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
+
+  if (opacity <= 0.01) return null;
+
+  return (
+    <Circle
+      center={kmToLatLng(event.atKm)}
+      radius={600}
+      pathOptions={{
+        color: "#f0a500",
+        fillColor: "#f0a500",
+        opacity,
+        fillOpacity: opacity * 0.6,
+        weight: 2,
+      }}
+    />
+  );
+}
+
+function OvertakeFlash({ overtakes, timelineMinutes, isActive }) {
+  const [flashes, setFlashes] = useState([]);
+  const previousTimeRef = useRef(timelineMinutes);
+  const recentFlashRef = useRef(new Map());
+
+  useEffect(() => {
+    if (!isActive) {
+      previousTimeRef.current = timelineMinutes;
+      return undefined;
     }
-    prevTime.current = timelineMinutes;
-  }, [timelineMinutes, overtakes]);
+
+    const lowerBound = Math.min(previousTimeRef.current, timelineMinutes) - 0.5;
+    const upperBound = Math.max(previousTimeRef.current, timelineMinutes) + 0.5;
+    const now = Date.now();
+
+    const nextFlashes = overtakes.filter((event) => {
+      if (event.atTimeMinutes < lowerBound || event.atTimeMinutes > upperBound) {
+        return false;
+      }
+
+      const flashKey = `${event.vehicleA}-${event.vehicleB}-${event.atKm}-${event.atTimeMinutes}`;
+      const lastFlash = recentFlashRef.current.get(flashKey) ?? 0;
+
+      if (now - lastFlash < 1200) {
+        return false;
+      }
+
+      recentFlashRef.current.set(flashKey, now);
+      return true;
+    });
+
+    if (nextFlashes.length > 0) {
+      const tagged = nextFlashes.map((event) => ({ ...event, flashId: `${Date.now()}-${Math.random()}` }));
+      setFlashes((current) => [...current, ...tagged]);
+
+      const timer = setTimeout(() => {
+        setFlashes((current) => current.filter((flash) => !tagged.some((item) => item.flashId === flash.flashId)));
+      }, 1500);
+
+      previousTimeRef.current = timelineMinutes;
+      return () => clearTimeout(timer);
+    }
+
+    previousTimeRef.current = timelineMinutes;
+    return undefined;
+  }, [isActive, overtakes, timelineMinutes]);
 
   return (
     <>
-      {flashes.map((ev) => {
-        const pos = kmToLatLng(ev.atKm);
-        return (
-          <CircleMarker
-            key={ev.id}
-            center={pos}
-            radius={18}
-            pathOptions={{ color: "#f97316", fillColor: "#fed7aa", fillOpacity: 0.55, weight: 2 }}
-          >
-            <Tooltip permanent={false} sticky>
-              ⚡ {labelFor(ev.overtakingVehicle)} overtook {labelFor(ev.vehicleA === ev.overtakingVehicle ? ev.vehicleB : ev.vehicleA)}
-            </Tooltip>
-          </CircleMarker>
-        );
-      })}
+      {flashes.map((event) => (
+        <AnimatedFlashCircle key={event.flashId} event={event} />
+      ))}
     </>
   );
 }
 
-// ─── Auto-pan to keep markers in view ────────────────────────────────────────
-function MapSync({ positions }) {
-  // No-op: we don't auto-pan, user controls the map freely
-  return null;
-}
-
-// ─── Main Map Component ───────────────────────────────────────────────────────
-export default function LiveMap() {
+export default function LiveMap({ isActive = true }) {
   const { vehicles, visibleOvertakes, timelineMinutes, selectedIds, colorMap } = useSimulator();
 
-  const visibleVehicles = useMemo(
-    () => vehicles.filter((v) => selectedIds.has(v.vehicleId)),
-    [vehicles, selectedIds]
-  );
-
-  // Compute each vehicle's current position
   const positions = useMemo(() => {
-    return visibleVehicles.map((v) => {
-      const km = vehicleKmAt(v, timelineMinutes);
-      if (km === null) return null;
-      const latlng = kmToLatLng(km);
-      const eta = etaToJaffna(v, timelineMinutes);
-      return { vehicleId: v.vehicleId, km: km.toFixed(1), latlng, eta };
-    }).filter(Boolean);
-  }, [visibleVehicles, timelineMinutes]);
+    return vehicles
+      .filter((vehicle) => selectedIds.has(vehicle.vehicleId))
+      .map((vehicle) => {
+        const position = getBusPosition(vehicle, timelineMinutes);
+        if (!position) return null;
+
+        return {
+          vehicleId: vehicle.vehicleId,
+          latlng: [position.lat, position.lng],
+          currentStop: position.currentStop,
+          nextStop: position.nextStop,
+          etaMinutes: position.etaMinutes,
+          km: position.km,
+          icon: createBusIcon(colorMap[vehicle.vehicleId]),
+        };
+      })
+      .filter(Boolean);
+  }, [colorMap, selectedIds, timelineMinutes, vehicles]);
 
   return (
-    <div className="rounded-2xl bg-slate-900 p-3 shadow-xl overflow-hidden">
-      {/* Map legend row */}
-      <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-6 border-t-2 border-dashed border-red-500" />
-          A9/A3 Highway
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-full bg-orange-400" />
-          Overtake flash
-        </span>
-        <span className="ml-auto font-mono text-slate-300">
-          {positions.length} buses on road · {minutesToHHmm(timelineMinutes)}
-        </span>
-      </div>
-
-      {/* Leaflet map */}
-      <div className="h-[540px] rounded-xl overflow-hidden ring-1 ring-slate-700">
+    <div className="h-full overflow-hidden rounded-[18px] border border-[var(--c-border)] bg-[var(--c-navy2)]">
+      <div style={{ width: "100%", height: "100%" }} className="relative h-full w-full overflow-hidden">
         <MapContainer
-          center={[8.0, 80.3]}
-          zoom={7}
-          style={{ height: "100%", width: "100%", background: "#0f172a" }}
+          center={[8.5, 80.5]}
+          zoom={8}
+          style={{ width: "100%", height: "100%" }}
           zoomControl
+          scrollWheelZoom
         >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            className="map-tiles-dark"
-          />
+          <MapInvalidator isActive={isActive} />
 
-          {/* Highway corridor */}
-          <Polyline
-            positions={ROUTE_LATLNGS}
-            pathOptions={{ color: "#ef4444", weight: 3, dashArray: "8 5", opacity: 0.7 }}
-          />
+          <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
 
-          {/* Main stop markers */}
-          {MAIN_STOPS.map((stop) => (
+          <Polyline positions={ROUTE_LATLNGS} pathOptions={{ color: "#8D153A", weight: 8, opacity: 0.15 }} />
+          <Polyline positions={ROUTE_LATLNGS} pathOptions={{ color: "#cc2255", weight: 2, dashArray: "10 6", opacity: 0.9 }} />
+
+          {HIGHWAY_STOPS.map((stop) => (
             <CircleMarker
               key={stop.name}
               center={[stop.lat, stop.lng]}
               radius={4}
-              pathOptions={{ color: "#ef4444", fillColor: "#fee2e2", fillOpacity: 1, weight: 2 }}
+              pathOptions={{ color: "#8D153A", fillColor: "#8D153A", fillOpacity: 0.45, weight: 1 }}
             >
-              <Tooltip sticky>
-                <span className="text-xs font-semibold">{stop.name}</span>
-                <br />
-                <span className="text-xs text-gray-500">{stop.km} km</span>
-              </Tooltip>
-            </CircleMarker>
-          ))}
-
-          {/* Bus position markers */}
-          {positions.map((pos) => (
-            <CircleMarker
-              key={pos.vehicleId}
-              center={pos.latlng}
-              radius={7}
-              pathOptions={{
-                color: "#0f172a",
-                fillColor: colorMap[pos.vehicleId],
-                fillOpacity: 0.95,
-                weight: 1.5,
-              }}
-            >
-              <Tooltip sticky>
-                <div className="text-xs">
-                  <p className="font-semibold">{labelFor(pos.vehicleId)}</p>
-                  <p className="text-gray-500">📍 {pos.km} km from Colombo</p>
-                  <p className="text-gray-500">⏱ ETA to end: {pos.eta}</p>
+              <Tooltip className="route-tooltip" direction="top" offset={[0, -4]}>
+                <div className="px-3 py-2">
+                  <p className="text-[12px] font-semibold text-[var(--c-text)]">{stop.name}</p>
+                  <p className="mt-1 font-mono text-[11px] text-[var(--c-text2)]">{stop.km} km</p>
                 </div>
               </Tooltip>
             </CircleMarker>
           ))}
 
-          {/* Overtake flash animations */}
-          <OvertakeFlash overtakes={visibleOvertakes} timelineMinutes={timelineMinutes} />
+          {positions.map((position) => (
+            <Marker key={position.vehicleId} position={position.latlng} icon={position.icon}>
+              <Tooltip className="bus-tooltip" direction="top" offset={[0, -12]}>
+                <div className="px-3 py-2">
+                  <p className="text-[13px] font-semibold text-[var(--c-text)]">{labelFor(position.vehicleId)}</p>
+                  <p className="mt-1 text-[11px] text-[var(--c-text2)]">
+                    {position.currentStop} → {position.nextStop}
+                  </p>
+                  <p className="mt-2 font-mono text-[12px] text-[var(--c-teal)]">
+                    ETA {Math.floor(position.etaMinutes / 60)}h {position.etaMinutes % 60}m
+                  </p>
+                </div>
+              </Tooltip>
+            </Marker>
+          ))}
 
-          <MapSync positions={positions} />
+          <OvertakeFlash overtakes={visibleOvertakes} timelineMinutes={timelineMinutes} isActive={isActive} />
         </MapContainer>
+
+        <div className="pointer-events-none absolute bottom-6 left-6 rounded-[10px] border border-[var(--c-border2)] bg-[color:rgba(7,12,24,0.85)] px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.25)] backdrop-blur-md">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--c-text3)]">Live map status</p>
+          <div className="mt-3 flex flex-col gap-1">
+            <p className="font-mono text-[12px] text-[var(--c-text2)]">{positions.length} buses on road</p>
+            <p className="font-mono text-[12px] text-[var(--c-teal)]">{minutesToHHmm(timelineMinutes)}</p>
+            <p className="font-mono text-[12px] text-[var(--c-text2)]">{visibleOvertakes.length} overtakes so far</p>
+          </div>
+        </div>
       </div>
     </div>
   );

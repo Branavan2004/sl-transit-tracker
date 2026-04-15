@@ -1,8 +1,265 @@
-/* Global Tailwind entrypoint and baseline page styling for the app. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply text-slate-800 antialiased;
+:root {
+  --font-display: "Sora", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --c-navy: #070c18;
+  --c-navy2: #0c1525;
+  --c-navy3: #111e35;
+  --c-navy4: #182540;
+  --c-red: #8d153a;
+  --c-red2: #b01d49;
+  --c-teal: #0fcfaa;
+  --c-teal2: #0a9980;
+  --c-amber: #f0a500;
+  --c-border: rgba(255, 255, 255, 0.07);
+  --c-border2: rgba(255, 255, 255, 0.13);
+  --c-text: #e4ecf7;
+  --c-text2: #8fa3c0;
+  --c-text3: #4a607d;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--c-navy);
+    color: var(--c-text);
+    font-family: var(--font-display);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  select option {
+    background: var(--c-navy2);
+    color: var(--c-text);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .fade-up {
+    opacity: 0;
+    animation: fadeUp 0.4s ease forwards;
+  }
+
+  .fade-delay-1 {
+    animation-delay: 80ms;
+  }
+
+  .fade-delay-2 {
+    animation-delay: 160ms;
+  }
+
+  .fade-delay-3 {
+    animation-delay: 240ms;
+  }
+}
+
+::selection {
+  background: rgba(15, 207, 170, 0.22);
+  color: var(--c-text);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.live-dot {
+  animation: pulseDot 1.4s ease-in-out infinite;
+}
+
+.log-enter {
+  animation: slideInRight 0.3s ease forwards;
+}
+
+.timeline-range {
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  cursor: grab;
+  outline: none;
+}
+
+.timeline-range:active {
+  cursor: grabbing;
+}
+
+.timeline-range::-webkit-slider-runnable-track {
+  height: 3px;
+  background: transparent;
+}
+
+.timeline-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 2px solid var(--c-navy);
+  border-radius: 999px;
+  background: var(--c-teal);
+  box-shadow: 0 0 0 4px rgba(15, 207, 170, 0.16);
+}
+
+.timeline-range::-moz-range-track {
+  height: 3px;
+  border: 0;
+  background: transparent;
+}
+
+.timeline-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--c-navy);
+  border-radius: 999px;
+  background: var(--c-teal);
+  box-shadow: 0 0 0 4px rgba(15, 207, 170, 0.16);
+}
+
+.timeline-range::-moz-range-progress {
+  height: 3px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.leaflet-container {
+  background: var(--c-navy2);
+}
+
+.leaflet-div-icon.bus-marker-icon {
+  border: 0;
+  background: transparent;
+}
+
+.bus-marker-icon__dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  background: var(--marker-color);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bus-marker-icon:hover .bus-marker-icon__dot {
+  transform: scale(1.4);
+  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.08);
+}
+
+.leaflet-tooltip.bus-tooltip,
+.leaflet-tooltip.route-tooltip {
+  border: 1px solid var(--c-border2);
+  border-radius: 8px;
+  background: var(--c-navy2);
+  color: var(--c-text);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.leaflet-tooltip.bus-tooltip .leaflet-tooltip-content,
+.leaflet-tooltip.route-tooltip .leaflet-tooltip-content {
+  margin: 0;
+}
+
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+  border-top-color: var(--c-border2);
+  border-bottom-color: var(--c-border2);
+}
+
+.leaflet-control-attribution {
+  border: 1px solid var(--c-border) !important;
+  border-top-left-radius: 10px !important;
+  background: rgba(7, 12, 24, 0.82) !important;
+  color: var(--c-text3) !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--c-text2) !important;
 }

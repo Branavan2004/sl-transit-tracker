@@ -1,0 +1,23 @@
+{
+  "date": "2026-04-14",
+  "routeId": "bus-colombo-jaffna-2026-04-16",
+  "vehicleId": "RATHNA_TRAVELS_MORNING_1",
+  "stops": [
+    { "name": "Colombo Fort",  "scheduledTime": "06:00", "actualTime": "06:07" },
+    { "name": "Negombo",       "scheduledTime": "07:05", "actualTime": "07:18" },
+    { "name": "Puttalam",      "scheduledTime": "08:40", "actualTime": "09:02" },
+    { "name": "Anuradhapura",  "scheduledTime": "10:15", "actualTime": "10:44" },
+    { "name": "Medawachchiya", "scheduledTime": "10:30", "actualTime": "11:03" },
+    { "name": "Vavuniya",      "scheduledTime": "11:15", "actualTime": "11:41" },
+    { "name": "Kilinochchi",   "scheduledTime": "12:10", "actualTime": "12:28" },
+    { "name": "Jaffna",        "scheduledTime": "13:55", "actualTime": "14:09" }
+  ],
+  "overtakesObserved": [
+    {
+      "overtookVehicle": "PUTTALAM_EXPRESS_1",
+      "nearStop": "Anuradhapura",
+      "atTime": "10:30"
+    }
+  ],
+  "notes": "Heavy traffic on the A1 after Puttalam; checkpoint delay at Medawachchiya (10 min)"
+}

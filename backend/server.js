@@ -8,6 +8,8 @@ const swaggerUi = require("swagger-ui-express");
 const routeRouter = require("./routes");
 const busRouter = require("./routes/buses");
 const apiRoutesRouter = require("./routes/apiRoutes");
+const actualRoutesRouter = require("./routes/actualRoutes");
+
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -25,6 +27,8 @@ app.get("/health", (_req, res) => {
 app.use("/routes", routeRouter);
 app.use("/buses", busRouter);
 app.use("/api/routes", apiRoutesRouter);
+app.use("/api/actual", actualRoutesRouter);
+
 
 app.use((_req, res) => {
   res.status(404).json({ message: "Resource not found." });

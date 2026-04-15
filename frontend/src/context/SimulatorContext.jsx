@@ -46,8 +46,10 @@ export function SimulatorProvider({ children }) {
   // Data
   const [vehicles, setVehicles] = useState([]);
   const [overtakes, setOvertakes] = useState([]);
+  const [actualJourneys, setActualJourneys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
 
   // Playback
   const [timelineMinutes, setTimelineMinutes] = useState(360);
@@ -59,7 +61,7 @@ export function SimulatorProvider({ children }) {
   const [onlySelected, setOnlySelected] = useState(false);
   const [hoveredVehicleId, setHoveredVehicleId] = useState(null);
   const [flashedOvertake, setFlashedOvertake] = useState(null); // { event, expiresAt }
-  const [xWindow, setXWindow] = useState(null); // { min, max } or null = auto
+  const [timeWindow, setTimeWindow] = useState({ from: 360, to: 960 });
 
   // Pulse ticker for animations
   const [pulse, setPulse] = useState(0);
@@ -72,17 +74,20 @@ export function SimulatorProvider({ children }) {
   useEffect(() => {
     async function load() {
       try {
-        const [tmRes, ovRes] = await Promise.all([
+        const [tmRes, ovRes, actualRes] = await Promise.all([
           fetch(`${API_BASE}/api/routes/${ROUTE_ID}/timetable`),
           fetch(`${API_BASE}/api/routes/${ROUTE_ID}/overtakes`),
+          fetch(`${API_BASE}/api/actual/${ROUTE_ID}`),
         ]);
         if (!tmRes.ok || !ovRes.ok) throw new Error("API error");
         const tmData = await tmRes.json();
         const ovData = await ovRes.json();
+        const actualData = actualRes.ok ? await actualRes.json() : { journeys: [] };
         const vs = tmData.vehicles || [];
         setVehicles(vs);
         setSelectedIds(new Set(vs.map((v) => v.vehicleId)));
         setOvertakes(ovData.overtakes || []);
+        setActualJourneys(actualData.journeys || []);
       } catch (e) {
         setError(e.message);
       } finally {
@@ -118,7 +123,7 @@ export function SimulatorProvider({ children }) {
 
   // ── Stats ──
   const stats = useMemo(() => {
-    if (!vehicles.length || !overtakes.length) return null;
+    if (!vehicles.length) return null;
 
     // Fastest bus: min (lastStop.abs - firstStop.abs) among vehicles reaching Jaffna
     let fastestId = null, fastestDur = Infinity;
@@ -133,7 +138,7 @@ export function SimulatorProvider({ children }) {
     overtakes.forEach((e) => {
       madeCounts[e.overtakingVehicle] = (madeCounts[e.overtakingVehicle] || 0) + 1;
     });
-    const mostMadeId = Object.keys(madeCounts).sort((a, b) => madeCounts[b] - madeCounts[a])[0];
+    const mostMadeId = Object.keys(madeCounts).sort((a, b) => madeCounts[b] - madeCounts[a])[0] || fastestId;
 
     // Most overtaken
     const overtakenCounts = {};
@@ -141,7 +146,7 @@ export function SimulatorProvider({ children }) {
       const victim = e.vehicleA === e.overtakingVehicle ? e.vehicleB : e.vehicleA;
       overtakenCounts[victim] = (overtakenCounts[victim] || 0) + 1;
     });
-    const mostOvertakenId = Object.keys(overtakenCounts).sort((a, b) => overtakenCounts[b] - overtakenCounts[a])[0];
+    const mostOvertakenId = Object.keys(overtakenCounts).sort((a, b) => overtakenCounts[b] - overtakenCounts[a])[0] || fastestId;
 
     return {
       fastestId,
@@ -150,6 +155,7 @@ export function SimulatorProvider({ children }) {
       mostMadeCount: madeCounts[mostMadeId] || 0,
       mostOvertakenId,
       mostOvertakenCount: overtakenCounts[mostOvertakenId] || 0,
+      totalOvertakes: overtakes.length,
     };
   }, [vehicles, overtakes]);
 
@@ -215,17 +221,20 @@ export function SimulatorProvider({ children }) {
   return (
     <SimulatorContext.Provider value={{
       // Data
-      vehicles, overtakes, loading, error,
+      vehicles, overtakes, actualJourneys, loading, error,
+
       // Derived
       globalMin, globalMax, colorMap, stats, visibleOvertakes,
       // Playback
       timelineMinutes, setTimelineMinutes, isPlaying, setIsPlaying, playSpeed, setPlaySpeed,
+      timeMinutes: timelineMinutes, setTimeMinutes: setTimelineMinutes,
+      playing: isPlaying, setPlaying: setIsPlaying,
       resetPlayback,
       // UI
       selectedIds, toggleVehicle, toggleAll, onlySelected, setOnlySelected,
       hoveredVehicleId, setHoveredVehicleId,
       flashedOvertake, flashOvertakeEvent,
-      xWindow, setXWindow,
+      timeWindow, setTimeWindow,
       pulse,
     }}>
       {children}

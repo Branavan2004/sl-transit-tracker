@@ -28,10 +28,17 @@ export default function SearchBar({ onSearch }) {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 rounded-xl bg-white p-6 shadow-md md:grid-cols-3">
+    <form
+      onSubmit={handleSubmit}
+      className="grid gap-4 rounded-[20px] border border-[var(--c-border)] bg-[var(--c-navy2)] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.28)] md:grid-cols-[1fr_1fr_auto]"
+    >
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">From</label>
-        <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2">
+        <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--c-text3)]">From</label>
+        <select
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+          className="w-full rounded-xl border border-[var(--c-border2)] bg-[var(--c-navy3)] px-4 py-3 text-[var(--c-text)] outline-none transition-all duration-150 ease-out hover:border-[var(--c-teal2)] focus:border-[var(--c-teal)]"
+        >
           {cities.map((city) => (
             <option key={city} value={city}>
               {city}
@@ -40,8 +47,12 @@ export default function SearchBar({ onSearch }) {
         </select>
       </div>
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">To</label>
-        <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2">
+        <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--c-text3)]">To</label>
+        <select
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          className="w-full rounded-xl border border-[var(--c-border2)] bg-[var(--c-navy3)] px-4 py-3 text-[var(--c-text)] outline-none transition-all duration-150 ease-out hover:border-[var(--c-teal2)] focus:border-[var(--c-teal)]"
+        >
           {toOptions.map((city) => (
             <option key={city} value={city}>
               {city}
@@ -49,8 +60,11 @@ export default function SearchBar({ onSearch }) {
           ))}
         </select>
       </div>
-      <button type="submit" className="self-end rounded-lg bg-brand px-4 py-2 font-semibold text-white transition hover:bg-teal-700">
-        Search
+      <button
+        type="submit"
+        className="self-end rounded-xl bg-[var(--c-red)] px-5 py-3 text-[13px] font-semibold text-white transition-all duration-150 ease-out hover:bg-[var(--c-red2)] active:scale-[0.97]"
+      >
+        Open Timetable
       </button>
     </form>
   );

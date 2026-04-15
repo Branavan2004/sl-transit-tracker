@@ -177,15 +177,21 @@ export default function OvertakeChart({ buses }) {
 
   return (
     <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-      <div className="rounded-xl bg-white p-4 shadow-md">
+      <div className="rounded-[18px] border border-[var(--c-border)] bg-[var(--c-navy2)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.25)]">
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <button onClick={() => setIsPlaying((value) => !value)} className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white">
+          <button
+            onClick={() => setIsPlaying((value) => !value)}
+            className="rounded-lg bg-[var(--c-red)] px-3 py-2 text-sm font-semibold text-white transition-all duration-150 ease-out hover:bg-[var(--c-red2)]"
+          >
             {isPlaying ? "Pause" : "Play"}
           </button>
-          <button onClick={() => setProgress(minTime)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <button
+            onClick={() => setProgress(minTime)}
+            className="rounded-lg border border-[var(--c-border2)] px-3 py-2 text-sm text-[var(--c-text2)] transition-all duration-150 ease-out hover:bg-[var(--c-navy4)]"
+          >
             Reset
           </button>
-          <label className="text-sm">Speed: {speed.toFixed(1)}x</label>
+          <label className="text-sm text-[var(--c-text2)]">Speed: {speed.toFixed(1)}x</label>
           <input
             type="range"
             min="0.5"
@@ -195,13 +201,16 @@ export default function OvertakeChart({ buses }) {
             onChange={(e) => setSpeed(Number(e.target.value))}
             className="w-40"
           />
-          <button onClick={() => setMode((current) => (current === "scheduledTime" ? "actualTime" : "scheduledTime"))} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <button
+            onClick={() => setMode((current) => (current === "scheduledTime" ? "actualTime" : "scheduledTime"))}
+            className="rounded-lg border border-[var(--c-border2)] px-3 py-2 text-sm text-[var(--c-text2)] transition-all duration-150 ease-out hover:bg-[var(--c-navy4)]"
+          >
             Mode: {mode === "scheduledTime" ? "Scheduled" : "Actual"}
           </button>
         </div>
         <div className="mb-4 flex flex-wrap gap-3">
           {buses.map((bus) => (
-            <label key={bus.busId} className="inline-flex items-center gap-2 text-sm">
+            <label key={bus.busId} className="inline-flex items-center gap-2 text-sm text-[var(--c-text2)]">
               <input type="checkbox" checked={selectedBusIds.includes(bus.busId)} onChange={() => toggleBus(bus.busId)} />
               {bus.name}
             </label>
@@ -211,12 +220,12 @@ export default function OvertakeChart({ buses }) {
           <Line data={chartData} options={options} />
         </div>
       </div>
-      <aside className="rounded-xl bg-white p-4 shadow-md">
-        <h3 className="mb-3 text-lg font-semibold">Live overtake log</h3>
+      <aside className="rounded-[18px] border border-[var(--c-border)] bg-[var(--c-navy2)] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.25)]">
+        <h3 className="mb-3 text-lg font-semibold text-[var(--c-text)]">Live overtake log</h3>
         <div className="space-y-2">
-          {liveLog.length === 0 && <p className="text-sm text-slate-500">No overtake events yet.</p>}
+          {liveLog.length === 0 && <p className="text-sm text-[var(--c-text3)]">No overtake events yet.</p>}
           {liveLog.map((event) => (
-            <p key={event.id} className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p key={event.id} className="rounded-lg border border-[color:rgba(240,165,0,0.18)] bg-[color:rgba(240,165,0,0.08)] px-3 py-2 text-sm text-[var(--c-amber)]">
               {event.label}
             </p>
           ))}
