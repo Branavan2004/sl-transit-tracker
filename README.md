@@ -1,109 +1,98 @@
-# SL Transit Tracker
+# Artemis Intelligence — Sri Lanka Transit Operations Center
 
-Production-style portfolio project that unifies Sri Lanka intercity bus timetable data and visualises overtakes with an animated time-space simulation.
+A production-grade, full-stack transit operations and simulation platform designed to unify fragmented Sri Lankan intercity bus data. This project demonstrates advanced patterns in modern web development, including distance-based linear interpolation for real-time tracking, sophisticated overtake computation, and enterprise-grade API documentation.
 
-## Screenshots
+## What This Project Demonstrates
 
-| Home search | Results + timetable | Overtake simulator |
-|---|---|---|
-| ![Home](docs/screenshots/home.png) | ![Timetable](docs/screenshots/timetable.png) | ![Simulator](docs/screenshots/simulator.png) |
+*   **Modern Frontend**: React 18 + Vite with role-aware operations layouts, high-fidelity transit dashboards, and interactive Leaflet maps.
+*   **Robust Backend**: Node.js/Express API with a high-performance structured JSON data layer and specialized transit computation utilities.
+*   **Advanced Simulation**: A custom-built km-based linear interpolation engine for detecting vehicle overtakes and predicting real-time asset positions.
+*   **API Governance**: Complete OpenAPI 3.0 (Swagger) integration for standardized endpoint management and interactive documentation.
+*   **Performance Analytics**: Multi-layered data visualization comparing Scheduled vs. Actual journey metrics using Chart.js time-space diagrams.
+*   **Cloud Native**: Architecture optimized for automated deployment via platforms like Vercel (frontend) and Render (backend).
 
-## Motivation
+---
 
-Most Sri Lankan bus timetable information is fragmented. This app demonstrates how structured journey data can power:
-- Searchable intercity route timetables
-- Scheduled vs actual delay analysis
-- Animated overtake insights for operations storytelling
-- Live map showing bus positions interpolated from timetable data
+## Core Features
+
+### 1. Operations and Live Simulation
+*   **Live Asset Tracking**: Visualizes bus positions on an interactive Leaflet map using real-time interpolation along route corridors.
+*   **Overtake Simulation Engine**: pure-function computation that detects pairwise vehicle interactions across 1km sampled corridor intervals.
+*   **Interactive Time-Space Diagrams**: Visualizes the entire route lifecycle, allowing operators to see scheduled paths vs. real-world deviations.
+
+### 2. Transit Performance Analytics
+*   **Scheduled vs. Actual Tracking**: Seamless integration of recorded journey data with optimistic UI overlays for instant delay analysis.
+*   **Delay Segment Profiling**: Identifies specific road segments where time was lost (e.g., "Heavy traffic after Puttalam") using dashed overlay line-markers on charts.
+*   **Timetable Intelligence**: Instant access to searchable intercity timetables across multiple vehicle classes (Luxury, Semi-Luxury, etc.).
+
+### 3. API Governance & Security
+*   **Standardized Documentation**: Fully managed OpenAPI 3.0 specs available via the `/api-docs` Swagger portal.
+*   **Modular API Architecture**: Versioned-ready endpoints for routes, fleet journeys, and overtake calculations.
+*   **Security & Hardening**: Implemented CORS policies and standardized error handling across the Express middleware stack.
+
+---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, Tailwind CSS, Chart.js, react-leaflet |
-| Backend | Node.js, Express, Swagger UI (OpenAPI 3.0) |
-| Data | Flat JSON files |
-| Deploy | Vercel (frontend), Render (backend) |
+### Frontend
+*   **Framework**: React 18 (Vite)
+*   **Styling**: Tailwind CSS
+*   **Visualizations**: Chart.js (Time-Space Diagrams), React-Leaflet (GIS)
+*   **Routing**: React Router DOM
+
+### Backend
+*   **Runtime**: Node.js, Express
+*   **Data Layer**: Structured JSON (Flat-file Corridor DB)
+*   **Documentation**: Swagger UI, YAML
+*   **Utilities**: Custom Linear Interpolation Engine
+
+### Deployment & Infrastructure
+*   **Cloud Platforms**: Vercel, Render
+*   **CI/CD**: Optimized for GitHub Actions / Automated cloud deployments
+
+---
+
+## System Architecture
+
+```mermaid
+graph TD
+    Data[JSON Corridor Data] -->|Route & Stop Specs| BE[Node.js/Express API]
+    BE -->|Overtake Compute| Util[Interpolation Engine]
+    Util --> BE
+    BE -->|REST API| FE[React Operations UI]
+    FE -->|Chart.js| Plot[Time-Space Diagram]
+    FE -->|Leaflet| Map[Map Visualization]
+    FE -->|Tailwind| UI[Command Center Interface]
+```
+
+---
 
 ## Local Setup
 
-### 1) Backend
-
+### 1. Backend
 ```bash
 cd backend
 npm install
 npm run dev
 ```
+*API runs at `http://localhost:4000`. Swagger docs at `/api-docs`.*
 
-Backend runs at `http://localhost:4000`.  
-API docs (Swagger): `http://localhost:4000/api-docs`
-
-### 2) Frontend
-
+### 2. Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*UI runs at `http://localhost:5173`.*
 
-Frontend runs at `http://localhost:5173` (or `5174` if 5173 is in use).
-
-To connect to a hosted backend, set:
-
-```bash
-VITE_API_URL=https://your-render-backend-url
-```
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/routes/:routeId/timetable` | Full timetable for a route |
-| GET | `/api/routes/:routeId/overtakes` | All computed overtake events |
-| GET | `/api/actual/:routeId` | Real recorded journeys for a route |
-| GET | `/routes` | Legacy route list |
-| GET | `/health` | Server health check |
-
-## Pages
-
-| URL | Description |
-|---|---|
-| `/` | Home — route search |
-| `/results?from=Colombo&to=Jaffna` | Timetable + Scheduled vs Actual + Chart |
-| `/simulate` | Full overtake simulator with time-space chart and live map |
-
-## Adding Real Journey Data
-
-Create a file in `backend/data/actual/` named `actual-<routeId>-YYYY-MM-DD.json`:
-
-```json
-{
-  "date": "2026-04-14",
-  "routeId": "bus-colombo-jaffna-2026-04-16",
-  "vehicleId": "RATHNA_TRAVELS_MORNING_1",
-  "stops": [
-    { "name": "Colombo Fort", "scheduledTime": "06:00", "actualTime": "06:07" },
-    { "name": "Jaffna",       "scheduledTime": "13:55", "actualTime": "14:09" }
-  ],
-  "notes": "Heavy traffic after Puttalam"
-}
-```
-
-Actual data automatically appears in the Results page as a **Scheduled vs Actual** comparison table and as a dashed overlay line on the time-space chart.
-
-## Suggested Git Commit Structure
-
-1. `feat(backend): scaffold express api and swagger docs`
-2. `feat(data): add colombo-jaffna routes and bus journey datasets`
-3. `feat(frontend): implement search, timetable and chart simulator`
-4. `feat(simulator): km-based overtake calculator + time-space diagram`
-5. `feat(map): leaflet live map with bus position interpolation`
-6. `feat(actual): scheduled vs actual journey comparison`
-7. `docs(readme): add setup guide, api reference and screenshots`
+---
 
 ## Future Roadmap
+- [ ] **IoT Integration**: WebSocket-based real-time GPS telemetry for live bus positions.
+- [ ] **AI Forecasting**: Predictive delay analysis using historical traffic patterns.
+- [ ] **Multi-Corridor Expansion**: Scaling to Kandy, Galle, and Matara transit lines.
+- [ ] **Passenger Companion**: Mobile-first PWA for crowdsourced delay updates.
 
-- Live GPS-based bus position streaming
-- Crowdsourced passenger delay updates
-- Additional routes (Colombo–Kandy, Colombo–Galle)
-- Native mobile app companion
+---
+
+**Developed with ❤️ by [Branavan](https://github.com/Branavan2004)**
