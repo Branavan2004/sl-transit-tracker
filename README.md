@@ -1,4 +1,4 @@
-# Artemis Intelligence — Sri Lanka Transit Operations Center
+# sl-transit-tracker — Sri Lanka Transit Operations Center
 
 A production-grade, full-stack transit operations and simulation platform designed to unify fragmented Sri Lankan intercity bus data. This project demonstrates advanced patterns in modern web development, including distance-based linear interpolation for real-time tracking, sophisticated overtake computation, and enterprise-grade API documentation.
 
